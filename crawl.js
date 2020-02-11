@@ -33,7 +33,7 @@ const fetchProductsDetails = () => new Promise(async (resolve, reject) => {
     const promises = [];
     console.log(`Fetching Products Details...`);
     for (let i = 0; i < categories.length; i++) {
-      console.log(`${i + 1}/${categories.length} - Fetching Products Details For Category: ${categories[i].name}...`);
+      // console.log(`${i + 1}/${categories.length} - Fetching Products Details For Category: ${categories[i].name}...`);
       for (let j = 0; j < categories[i].products.length; j++) {
         if (!categories[i].products[j].toLowerCase().includes('segment')) {
           promises.push(limit(() => getProduct(i, j)));
@@ -66,6 +66,7 @@ const getProduct = (categoryIdx, productIdx) => new Promise(async (resolve, reje
     product.description = script.description;
     product.startDate = script.offers.validFrom;
     product.endDate = script.offers.priceValidUntil;
+    products.push(product);
 
     await page.close();
     resolve();
