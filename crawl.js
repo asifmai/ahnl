@@ -1,16 +1,22 @@
 const pupHelper = require('./puppeteerhelper');
 const fs = require('fs');
+const pLimit = require('p-limit');
 const {siteLink} = require('./keys');
 let browser;
+let products = [];
 let categories = [];
+categories = JSON.parse(fs.readFileSync('categories.json'));
 
 module.exports = () => new Promise(async (resolve, reject) => {
   try {
     browser = await pupHelper.launchBrowser();
-    await fetchProducts();
+    // await fetchProducts();
     
-    await fetchProductsFromSegments();
-    fs.writeFileSync('proeucts.json', JSON.stringify(categories));
+    // await fetchProductsFromSegments();
+    // fs.writeFileSync('categories.json', JSON.stringify(categories));
+
+    await fetchProductsDetails();
+    fs.writeFileSync('products.json', JSON.stringify(products));
 
     await browser.close();
     resolve();
@@ -20,6 +26,56 @@ module.exports = () => new Promise(async (resolve, reject) => {
     reject(error);
   }
 });
+
+const fetchProductsDetails = () => new Promise(async (resolve, reject) => {
+  try {
+    const limit = pLimit(10);
+    const promises = [];
+    console.log(`Fetching Products Details...`);
+    for (let i = 0; i < categories.length; i++) {
+      console.log(`${i + 1}/${categories.length} - Fetching Products Details For Category: ${categories[i].name}...`);
+      for (let j = 0; j < categories[i].products.length; j++) {
+        if (!categories[i].products[j].toLowerCase().includes('segment')) {
+          promises.push(limit(() => getProduct(i, j)));
+          // await getProduct(i, j);
+        }
+      }
+    }
+
+    await Promise.all(promises);
+    
+    resolve();
+  } catch (error) {
+    console.log(`fetchProductsDetails Error: ${error.message}`);
+    reject(error);
+  }
+});
+
+const getProduct = (categoryIdx, productIdx) => new Promise(async (resolve, reject) => {
+  let page;
+  try {
+    console.log(`${categoryIdx + 1}/${categories.length} - Fetching Product Details for [${categories[categoryIdx].products[productIdx]}]`);
+    page = await pupHelper.launchPage(browser, true);
+    await page.goto(categories[categoryIdx].products[productIdx], {timeout: 0, waitUntil: 'load'});
+    const product = {};
+    const script = JSON.parse(await pupHelper.getTxt('script[type="application/ld+json"]', page));
+    product.category = categories[categoryIdx].name;
+    product.title = script.name;
+    product.link = categories[categoryIdx].products[productIdx];
+    product.price = script.offers.price;
+    product.description = script.description;
+    product.startDate = script.offers.validFrom;
+    product.endDate = script.offers.priceValidUntil;
+
+    await page.close();
+    resolve();
+  } catch (error) {
+    await page.close();
+    console.log(`getProduct [${categories[categoryIdx].products[productIdx]}] Error: ${error.message}`);
+    reject(error);
+  }
+})
+
 
 const fetchProductsFromSegments = () => new Promise(async (resolve, reject) => {
   try {
