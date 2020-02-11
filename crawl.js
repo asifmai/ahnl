@@ -57,17 +57,18 @@ const getProduct = (categoryIdx, productIdx) => new Promise(async (resolve, reje
     console.log(`${categoryIdx + 1}/${categories.length} - Fetching Product Details for [${categories[categoryIdx].products[productIdx]}]`);
     page = await pupHelper.launchPage(browser, true);
     await page.goto(categories[categoryIdx].products[productIdx], {timeout: 0, waitUntil: 'load'});
+    
     const product = {};
     const script = JSON.parse(await pupHelper.getTxt('script[type="application/ld+json"]', page));
     product.category = categories[categoryIdx].name;
     product.title = script.name;
     product.link = categories[categoryIdx].products[productIdx];
-    product.price = script.offers.price;
+    product.price = script.offers ? parseFloat(script.offers.price) : '';
     product.description = script.description;
-    product.startDate = script.offers.validFrom;
-    product.endDate = script.offers.priceValidUntil;
-    products.push(product);
+    product.startDate = script.offers ? script.offers.validFrom : '';
+    product.endDate = script.offers ? script.offers.priceValidUntil : '';
 
+    products.push(product);
     await page.close();
     resolve();
   } catch (error) {
