@@ -37,7 +37,6 @@ const fetchProductsDetails = () => new Promise(async (resolve, reject) => {
       for (let j = 0; j < categories[i].products.length; j++) {
         if (!categories[i].products[j].toLowerCase().includes('segment')) {
           promises.push(limit(() => getProduct(i, j)));
-          // await getProduct(i, j);
         }
       }
     }
@@ -74,7 +73,7 @@ const getProduct = (categoryIdx, productIdx) => new Promise(async (resolve, reje
   } catch (error) {
     await page.close();
     console.log(`getProduct [${categories[categoryIdx].products[productIdx]}] Error: ${error.message}`);
-    reject(error);
+    resolve();
   }
 })
 
